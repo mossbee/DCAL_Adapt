@@ -1,0 +1,38 @@
+batch_size: 16
+crop_size: 224
+data: twin_faces
+data_path: ./data/images/twin_faces
+debug: true
+drop_path_rate: 0.1
+early_patience: 101
+epoch: 100
+eval_freq: 5
+final_acc_hp: true
+final_run: true
+full: false
+gpu_num: 1
+lr: 0.005
+lr_min: 1.0e-06
+model: dinov2
+momentum: 0.9
+normalized: true
+optimizer: sgd
+pretrained_weights: vit_base_patch14_dinov2
+random_seed: 42
+store_ckp: true
+test_batch_size: 32
+train_type: prompt_cam
+vpt_dropout: 0.1
+vpt_layer: null
+vpt_mode: null
+vpt_num: 2  # 2 class-specific prompts: same person vs twin
+warmup_epoch: 20
+warmup_lr_init: 0
+wd: 0.001
+
+# Triplet loss specific parameters
+triplet_margin: 0.3
+hard_negative_mining: true
+
+# Training speed optimization
+triplet_portion: 1.0  # Fraction of triplets to use (0.0-1.0). Use 0.2 for faster training. 

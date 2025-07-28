@@ -1,0 +1,10 @@
+{
+    "person_1": [
+        "/path/to/person1_img1.jpg",
+        "/path/to/person1_img2.jpg"
+    ],
+    "person_2": [
+        "/path/to/person2_img1.jpg",
+        "/path/to/person2_img2.jpg"
+    ]
+}
