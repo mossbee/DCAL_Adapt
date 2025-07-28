@@ -65,7 +65,7 @@ def get_dataset(data, params, logger):
 
 
 def get_loader(params, logger):
-    if 'test_data' in params:
+    if hasattr(params, 'test_data') and params.test_data is not None:
         dataset_train, dataset_val, dataset_test = get_dataset(params.test_data, params, logger)
     else:
         dataset_train, dataset_val, dataset_test = get_dataset(params.data, params, logger)

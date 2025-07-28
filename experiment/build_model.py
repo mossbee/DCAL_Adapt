@@ -1,4 +1,5 @@
 import timm
+import os
 import torch
 from model.vision_transformer import VisionTransformerPETL
 from model.twin_face_vpt import create_twin_face_model
@@ -32,7 +33,10 @@ def get_model(params,visualize=False):
     model_grad_params_no_head = log_model_info(model, logger)
 
     if not visualize:
-      model = model.cuda(device=params.device)
+        if torch.cuda.is_available():
+            model = model.cuda(device=params.device)
+        else:
+            model = model.to(params.device)
     return model, tune_parameters, model_grad_params_no_head
 
 
@@ -42,8 +46,14 @@ def get_base_model(params,visualize=False):
         logger.info("Creating twin face verification model")
         model = create_twin_face_model(params)
         if not visualize:
-            # Load DINOv2 pretrained weights
-            model.load_pretrained('pretrained_weights/dinov2_vitb14_pretrain.pth')
+            # Load DINOv2 pretrained weights if available
+            pretrained_path = 'pretrained_weights/dinov2_vitb14_pretrain.pth'
+            if os.path.exists(pretrained_path):
+                logger.info(f"Loading pretrained weights from {pretrained_path}")
+                model.load_pretrained(pretrained_path)
+            else:
+                logger.warning(f"Pretrained weights not found at {pretrained_path}")
+                logger.warning("Training will start from random initialization")
         return model
     
     # Original model creation logic
