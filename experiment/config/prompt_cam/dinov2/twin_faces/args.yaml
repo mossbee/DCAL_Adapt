@@ -1,7 +1,7 @@
 batch_size: 16
 crop_size: 224
 data: twin_faces
-data_path: ./data/images/twin_faces
+data_path: .  # Set to current directory since paths in id_to_images.json are absolute
 debug: true
 drop_path_rate: 0.1
 early_patience: 101

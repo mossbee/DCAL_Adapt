@@ -27,6 +27,7 @@ export WANDB_API_KEY="your_api_key_here"
 Ensure your dataset follows this structure:
 
 ```
+# Option 1: Relative paths in JSON files
 data/
 ├── images/
 │   ├── person1_img1.jpg
@@ -35,27 +36,47 @@ data/
 ├── id_to_images.json
 ├── train_twin_id_pairs.json
 └── test_twin_id_pairs.json
+
+# Option 2: Absolute paths in JSON files (recommended for Kaggle)
+id_to_images.json
+train_twin_id_pairs.json
+test_twin_id_pairs.json
 ```
 
 **JSON Format:**
-- `id_to_images.json`: Maps person IDs to image paths
+- `id_to_images.json`: Maps person IDs to image paths (can be absolute or relative)
 - `train_twin_id_pairs.json` / `test_twin_id_pairs.json`: Twin pair relationships
+
+**Path Handling:**
+- If paths in `id_to_images.json` are absolute: set `data_path: .` in config
+- If paths in `id_to_images.json` are relative: set `data_path: ./data/images` in config
 
 ### 3. Training
 
 #### Fresh Training
 ```bash
+# Option 1: Using the original script (run from project root)
 python experiment/run.py \
     --config experiment/config/prompt_cam/dinov2/twin_faces/args.yaml \
     --data twin_faces \
+    --output_dir ./outputs/twin_faces_experiment
+
+# Option 2: Using the standalone script (can run from any directory)
+python run_training.py \
     --output_dir ./outputs/twin_faces_experiment
 ```
 
 #### Fast Training (20% of triplets)
 ```bash
+# Option 1: Using the original script (run from project root)
 python experiment/run.py \
     --config experiment/config/prompt_cam/dinov2/twin_faces/args.yaml \
     --data twin_faces \
+    --output_dir ./outputs/twin_faces_fast \
+    --triplet_portion 0.2
+
+# Option 2: Using the standalone script (can run from any directory)
+python run_training.py \
     --output_dir ./outputs/twin_faces_fast \
     --triplet_portion 0.2
 ```

@@ -103,10 +103,16 @@ class TwinFaceDataset(Dataset):
         """Get a triplet."""
         triplet = self.triplets[idx]
         
-        # Load images
-        anchor_path = os.path.join(self.data_root, triplet['anchor'])
-        positive_path = os.path.join(self.data_root, triplet['positive'])
-        negative_path = os.path.join(self.data_root, triplet['negative'])
+        # Load images - handle both absolute and relative paths
+        def get_image_path(img_path):
+            if os.path.isabs(img_path):
+                return img_path  # Already absolute path
+            else:
+                return os.path.join(self.data_root, img_path)  # Join with data_root
+        
+        anchor_path = get_image_path(triplet['anchor'])
+        positive_path = get_image_path(triplet['positive'])
+        negative_path = get_image_path(triplet['negative'])
         
         anchor_img = self.loader(anchor_path)
         positive_img = self.loader(positive_path)
