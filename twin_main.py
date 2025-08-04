@@ -179,8 +179,14 @@ def eval_mode(args):
         learnable_threshold=config.learnable_threshold
     )
     
-    # Load checkpoint
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    # Load checkpoint with compatibility for older PyTorch versions
+    try:
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    except Exception as e:
+        print(f"Warning: Failed to load checkpoint with weights_only=False: {e}")
+        print("Trying with weights_only=True...")
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
+    
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
     model.eval()
@@ -258,8 +264,14 @@ def infer_mode(args):
         learnable_threshold=config.learnable_threshold
     )
     
-    # Load checkpoint
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    # Load checkpoint with compatibility for older PyTorch versions
+    try:
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    except Exception as e:
+        print(f"Warning: Failed to load checkpoint with weights_only=False: {e}")
+        print("Trying with weights_only=True...")
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
+    
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
     model.eval()
@@ -352,8 +364,14 @@ def visualize_mode(args):
         learnable_threshold=config.learnable_threshold
     )
     
-    # Load checkpoint
-    checkpoint = torch.load(args.checkpoint, map_location=device)
+    # Load checkpoint with compatibility for older PyTorch versions
+    try:
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
+    except Exception as e:
+        print(f"Warning: Failed to load checkpoint with weights_only=False: {e}")
+        print("Trying with weights_only=True...")
+        checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=True)
+    
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to(device)
     model.eval()
