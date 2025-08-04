@@ -460,8 +460,13 @@ def plot_attention_maps(model,
                     cls_attention2 = base_model.rollout_hook.get_cls_attention()
                     
                     # Convert to attention maps
-                    attention_map1 = cls_attention1[0].cpu().numpy().reshape(14, 14)  # 14x14 for 224x224 images
-                    attention_map2 = cls_attention2[0].cpu().numpy().reshape(14, 14)
+                    # Get the number of patches (excluding CLS token)
+                    num_patches = cls_attention1[0].shape[0] - 1  # -1 for CLS token
+                    patch_size = int(np.sqrt(num_patches))  # Should be 14 for 224x224 images
+                    
+                    # Reshape attention maps (excluding CLS token attention to itself)
+                    attention_map1 = cls_attention1[0][1:].cpu().numpy().reshape(patch_size, patch_size)
+                    attention_map2 = cls_attention2[0][1:].cpu().numpy().reshape(patch_size, patch_size)
                     
                     # Plot attention maps
                     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
@@ -480,10 +485,11 @@ def plot_attention_maps(model,
                     
                     # Original images (denormalize)
                     img1_denorm = image1.permute(1, 2, 0).cpu().numpy()
-                    img1_denorm = (img1_denorm * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]).clip(0, 1)
+                    # Apply denormalization: (x - mean) / std -> x = (x * std) + mean
+                    img1_denorm = (img1_denorm * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])).clip(0, 1)
                     
                     img2_denorm = image2.permute(1, 2, 0).cpu().numpy()
-                    img2_denorm = (img2_denorm * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]).clip(0, 1)
+                    img2_denorm = (img2_denorm * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])).clip(0, 1)
                     
                     axes[1, 0].imshow(img1_denorm)
                     axes[1, 0].set_title('Image 1')
