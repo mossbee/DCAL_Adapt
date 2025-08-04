@@ -455,14 +455,24 @@ def plot_attention_maps(model,
                     
                     # Process first image
                     print("  Debug: Processing first image...")
-                    _ = model.extract_features(image1.unsqueeze(0))
+                    # Check if tensor already has batch dimension
+                    if image1.dim() == 3:
+                        image1_batch = image1.unsqueeze(0)
+                    else:
+                        image1_batch = image1
+                    _ = model.extract_features(image1_batch)
                     cls_attention1 = base_model.rollout_hook.get_cls_attention()
                     print(f"  Debug: cls_attention1 shape: {cls_attention1.shape}")
                     
                     # Reset and process second image
                     print("  Debug: Processing second image...")
                     base_model.rollout_hook.reset()
-                    _ = model.extract_features(image2.unsqueeze(0))
+                    # Check if tensor already has batch dimension
+                    if image2.dim() == 3:
+                        image2_batch = image2.unsqueeze(0)
+                    else:
+                        image2_batch = image2
+                    _ = model.extract_features(image2_batch)
                     cls_attention2 = base_model.rollout_hook.get_cls_attention()
                     print(f"  Debug: cls_attention2 shape: {cls_attention2.shape}")
                     
