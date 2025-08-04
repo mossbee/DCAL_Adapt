@@ -66,10 +66,13 @@ class TwinConfig:
         if self.device not in ["cuda", "cpu"]:
             errors.append(f"Invalid device: {self.device}. Must be 'cuda' or 'cpu'")
             
-        # Check ratios sum to 1.0
-        total_ratio = self.same_person_ratio + self.twin_pairs_ratio + self.non_twin_ratio
-        if abs(total_ratio - 1.0) > 1e-6:
-            errors.append(f"Ratios must sum to 1.0, got {total_ratio}")
+        # Check ratios are positive
+        if self.same_person_ratio <= 0:
+            errors.append(f"Same person ratio must be positive, got {self.same_person_ratio}")
+        if self.twin_pairs_ratio <= 0:
+            errors.append(f"Twin pairs ratio must be positive, got {self.twin_pairs_ratio}")
+        if self.non_twin_ratio <= 0:
+            errors.append(f"Non-twin ratio must be positive, got {self.non_twin_ratio}")
             
         # Check positive values
         if self.batch_size <= 0:

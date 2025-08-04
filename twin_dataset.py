@@ -48,10 +48,13 @@ class TwinDataset(Dataset):
         self.non_twin_ratio = non_twin_ratio
         self.max_pairs_per_epoch = max_pairs_per_epoch
         
-        # Validate ratios sum to 1.0
-        total_ratio = same_person_ratio + twin_pairs_ratio + non_twin_ratio
-        if abs(total_ratio - 1.0) > 1e-6:
-            raise ValueError(f"Ratios must sum to 1.0, got {total_ratio}")
+        # Validate ratios are positive
+        if same_person_ratio <= 0:
+            raise ValueError(f"Same person ratio must be positive, got {same_person_ratio}")
+        if twin_pairs_ratio <= 0:
+            raise ValueError(f"Twin pairs ratio must be positive, got {twin_pairs_ratio}")
+        if non_twin_ratio <= 0:
+            raise ValueError(f"Non-twin ratio must be positive, got {non_twin_ratio}")
         
         # Load dataset
         self._load_dataset()
