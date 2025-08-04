@@ -525,11 +525,22 @@ def plot_attention_maps(model,
                     plt.colorbar(im2, ax=axes[0, 1], fraction=0.046, pad=0.04)
                     
                     # Original images (denormalize)
-                    img1_denorm = image1.permute(1, 2, 0).cpu().numpy()
+                    # Handle batch dimension if present
+                    if image1.dim() == 4:
+                        img1_for_plot = image1.squeeze(0)  # Remove batch dimension
+                    else:
+                        img1_for_plot = image1
+                    
+                    if image2.dim() == 4:
+                        img2_for_plot = image2.squeeze(0)  # Remove batch dimension
+                    else:
+                        img2_for_plot = image2
+                    
+                    img1_denorm = img1_for_plot.permute(1, 2, 0).cpu().numpy()
                     # Apply denormalization: (x - mean) / std -> x = (x * std) + mean
                     img1_denorm = (img1_denorm * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])).clip(0, 1)
                     
-                    img2_denorm = image2.permute(1, 2, 0).cpu().numpy()
+                    img2_denorm = img2_for_plot.permute(1, 2, 0).cpu().numpy()
                     img2_denorm = (img2_denorm * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])).clip(0, 1)
                     
                     axes[1, 0].imshow(img1_denorm)
