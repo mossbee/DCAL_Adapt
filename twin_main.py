@@ -302,7 +302,8 @@ def infer_mode(args):
         emb2 = model.extract_features(img2_tensor)
         
         # Compute similarity
-        similarity = model.compute_similarity(emb1, emb2)
+        from twin_model import compute_cosine_similarity
+        similarity = compute_cosine_similarity(emb1, emb2)
         
         # Get prediction
         threshold = model.threshold if hasattr(model, 'threshold') else 0.5
@@ -401,20 +402,27 @@ def visualize_mode(args):
     output_dir = Path(args.output_dir or "./visualization_results")
     output_dir.mkdir(exist_ok=True)
     
-    # Generate attention maps
-    from twin_evaluation import plot_attention_maps
-    plot_attention_maps(
-        model=model,
-        image1=img1_tensor,
-        image2=img2_tensor,
-        save_path=str(output_dir / "attention_maps.png")
-    )
+    # Generate attention maps (if available)
+    try:
+        from twin_evaluation import plot_attention_maps
+        plot_attention_maps(
+            model=model,
+            image1=img1_tensor,
+            image2=img2_tensor,
+            save_path=str(output_dir / "attention_maps.png")
+        )
+        print("✓ Attention maps generated")
+    except Exception as e:
+        print(f"⚠ Attention maps not available: {e}")
+        print("  Continuing with similarity visualization only...")
     
     # Generate similarity visualization
     with torch.no_grad():
         emb1 = model.extract_features(img1_tensor)
         emb2 = model.extract_features(img2_tensor)
-        similarity = model.compute_similarity(emb1, emb2)
+        # Use the standalone cosine similarity function
+        from twin_model import compute_cosine_similarity
+        similarity = compute_cosine_similarity(emb1, emb2)
     
     # Create similarity visualization
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
