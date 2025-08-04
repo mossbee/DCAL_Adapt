@@ -441,39 +441,74 @@ def plot_attention_maps(model,
     model.eval()
     
     with torch.no_grad():
-        # Get attention rollout
-        # This requires the model to have attention rollout functionality
-        if hasattr(model, 'get_attention_maps'):
-            attention_maps1 = model.get_attention_maps(image1.unsqueeze(0))
-            attention_maps2 = model.get_attention_maps(image2.unsqueeze(0))
-            
-            # Plot attention maps
-            fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-            
-            # Image 1 attention
-            axes[0, 0].imshow(attention_maps1[0].cpu().numpy(), cmap='hot')
-            axes[0, 0].set_title('Image 1 Attention Map')
-            axes[0, 0].axis('off')
-            
-            # Image 2 attention
-            axes[0, 1].imshow(attention_maps2[0].cpu().numpy(), cmap='hot')
-            axes[0, 1].set_title('Image 2 Attention Map')
-            axes[0, 1].axis('off')
-            
-            # Original images
-            axes[1, 0].imshow(image1.permute(1, 2, 0).cpu().numpy())
-            axes[1, 0].set_title('Image 1')
-            axes[1, 0].axis('off')
-            
-            axes[1, 1].imshow(image2.permute(1, 2, 0).cpu().numpy())
-            axes[1, 1].set_title('Image 2')
-            axes[1, 1].axis('off')
-            
-            plt.tight_layout()
-            
-            if save_path:
-                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        try:
+            # Get attention rollout from the base model
+            if hasattr(model, 'siamese_model') and hasattr(model.siamese_model, 'base_model'):
+                base_model = model.siamese_model.base_model
+                
+                # Reset attention rollout hook
+                if hasattr(base_model, 'rollout_hook'):
+                    base_model.rollout_hook.reset()
+                    
+                    # Process first image
+                    _ = model.extract_features(image1.unsqueeze(0))
+                    cls_attention1 = base_model.rollout_hook.get_cls_attention()
+                    
+                    # Reset and process second image
+                    base_model.rollout_hook.reset()
+                    _ = model.extract_features(image2.unsqueeze(0))
+                    cls_attention2 = base_model.rollout_hook.get_cls_attention()
+                    
+                    # Convert to attention maps
+                    attention_map1 = cls_attention1[0].cpu().numpy().reshape(14, 14)  # 14x14 for 224x224 images
+                    attention_map2 = cls_attention2[0].cpu().numpy().reshape(14, 14)
+                    
+                    # Plot attention maps
+                    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+                    
+                    # Image 1 attention
+                    im1 = axes[0, 0].imshow(attention_map1, cmap='hot', interpolation='bilinear')
+                    axes[0, 0].set_title('Image 1 Attention Map')
+                    axes[0, 0].axis('off')
+                    plt.colorbar(im1, ax=axes[0, 0], fraction=0.046, pad=0.04)
+                    
+                    # Image 2 attention
+                    im2 = axes[0, 1].imshow(attention_map2, cmap='hot', interpolation='bilinear')
+                    axes[0, 1].set_title('Image 2 Attention Map')
+                    axes[0, 1].axis('off')
+                    plt.colorbar(im2, ax=axes[0, 1], fraction=0.046, pad=0.04)
+                    
+                    # Original images (denormalize)
+                    img1_denorm = image1.permute(1, 2, 0).cpu().numpy()
+                    img1_denorm = (img1_denorm * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]).clip(0, 1)
+                    
+                    img2_denorm = image2.permute(1, 2, 0).cpu().numpy()
+                    img2_denorm = (img2_denorm * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]).clip(0, 1)
+                    
+                    axes[1, 0].imshow(img1_denorm)
+                    axes[1, 0].set_title('Image 1')
+                    axes[1, 0].axis('off')
+                    
+                    axes[1, 1].imshow(img2_denorm)
+                    axes[1, 1].set_title('Image 2')
+                    axes[1, 1].axis('off')
+                    
+                    plt.tight_layout()
+                    
+                    if save_path:
+                        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+                        plt.close()
+                    else:
+                        plt.show()
+                        
+                    print("✓ Attention maps generated successfully")
+                    
+                else:
+                    print("⚠ Attention rollout hook not found in model")
+                    
             else:
-                plt.show()
-        else:
-            print("Model does not have attention map functionality") 
+                print("⚠ Model does not have attention rollout functionality")
+                
+        except Exception as e:
+            print(f"⚠ Error generating attention maps: {e}")
+            print("  Continuing with similarity visualization only...") 
