@@ -480,12 +480,32 @@ def plot_attention_maps(model,
                     print("  Debug: Converting to attention maps...")
                     # Get the number of patches (excluding CLS token)
                     num_patches = cls_attention1[0].shape[0] - 1  # -1 for CLS token
-                    patch_size = int(np.sqrt(num_patches))  # Should be 14 for 224x224 images
-                    print(f"  Debug: num_patches={num_patches}, patch_size={patch_size}")
+                    
+                    # Calculate the actual grid dimensions
+                    # For 224x224 images with 16x16 patches: 224/16 = 14, so 14x14 = 196 patches
+                    # For 224x224 images with 14x14 patches: 224/14 = 16, so 16x16 = 256 patches
+                    # Let's calculate based on the actual number of patches
+                    grid_size = int(np.sqrt(num_patches))
+                    if grid_size * grid_size != num_patches:
+                        # If not a perfect square, find the closest rectangular shape
+                        # For 195 patches, try different combinations
+                        if num_patches == 195:
+                            grid_h, grid_w = 13, 15  # 13 * 15 = 195
+                        elif num_patches == 196:
+                            grid_h, grid_w = 14, 14  # 14 * 14 = 196
+                        elif num_patches == 256:
+                            grid_h, grid_w = 16, 16  # 16 * 16 = 256
+                        else:
+                            # Fallback: use the closest square
+                            grid_h = grid_w = int(np.sqrt(num_patches))
+                    else:
+                        grid_h = grid_w = grid_size
+                    
+                    print(f"  Debug: num_patches={num_patches}, grid_h={grid_h}, grid_w={grid_w}")
                     
                     # Reshape attention maps (excluding CLS token attention to itself)
-                    attention_map1 = cls_attention1[0][1:].cpu().numpy().reshape(patch_size, patch_size)
-                    attention_map2 = cls_attention2[0][1:].cpu().numpy().reshape(patch_size, patch_size)
+                    attention_map1 = cls_attention1[0][1:].cpu().numpy().reshape(grid_h, grid_w)
+                    attention_map2 = cls_attention2[0][1:].cpu().numpy().reshape(grid_h, grid_w)
                     print(f"  Debug: attention_map1 shape: {attention_map1.shape}")
                     print(f"  Debug: attention_map2 shape: {attention_map2.shape}")
                     
