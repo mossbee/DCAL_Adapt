@@ -25,7 +25,7 @@ phase3_epochs: 30
 progressive_training: true
 same_person_ratio: 0.1
 save_dir: ./checkpoints
-save_frequency: 1
+save_frequency: 5
 top_ratio: 0.35
 triplet_loss_weight: 0.1
 triplet_margin: 0.3
