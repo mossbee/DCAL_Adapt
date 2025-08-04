@@ -440,10 +440,10 @@ def main():
                        help='Preset configuration')
     
     # Data paths
-    parser.add_argument('--id_to_images', type=str, required=True,
-                       help='Path to id_to_images.json file')
-    parser.add_argument('--twin_pairs', type=str, required=True,
-                       help='Path to twin_pairs_infor.json file')
+    parser.add_argument('--id_to_images', type=str,
+                       help='Path to id_to_images.json file (required for train and eval modes)')
+    parser.add_argument('--twin_pairs', type=str,
+                       help='Path to twin_pairs_infor.json file (required for train and eval modes)')
     
     # Model checkpoint
     parser.add_argument('--checkpoint', type=str,
@@ -470,6 +470,14 @@ def main():
     args = parser.parse_args()
     
     # Validate arguments based on mode
+    if args.mode in ['train', 'eval']:
+        if not args.id_to_images:
+            print("Error: --id_to_images is required for train and eval modes!")
+            return
+        if not args.twin_pairs:
+            print("Error: --twin_pairs is required for train and eval modes!")
+            return
+    
     if args.mode in ['eval', 'infer', 'visualize'] and not args.checkpoint:
         print("Error: --checkpoint is required for eval, infer, and visualize modes!")
         return
