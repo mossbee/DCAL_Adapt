@@ -442,31 +442,42 @@ def plot_attention_maps(model,
     
     with torch.no_grad():
         try:
+            print("  Debug: Starting attention map generation...")
             # Get attention rollout from the base model
             if hasattr(model, 'siamese_model') and hasattr(model.siamese_model, 'base_model'):
+                print("  Debug: Found siamese_model and base_model")
                 base_model = model.siamese_model.base_model
                 
                 # Reset attention rollout hook
                 if hasattr(base_model, 'rollout_hook'):
+                    print("  Debug: Found rollout_hook")
                     base_model.rollout_hook.reset()
                     
                     # Process first image
+                    print("  Debug: Processing first image...")
                     _ = model.extract_features(image1.unsqueeze(0))
                     cls_attention1 = base_model.rollout_hook.get_cls_attention()
+                    print(f"  Debug: cls_attention1 shape: {cls_attention1.shape}")
                     
                     # Reset and process second image
+                    print("  Debug: Processing second image...")
                     base_model.rollout_hook.reset()
                     _ = model.extract_features(image2.unsqueeze(0))
                     cls_attention2 = base_model.rollout_hook.get_cls_attention()
+                    print(f"  Debug: cls_attention2 shape: {cls_attention2.shape}")
                     
                     # Convert to attention maps
+                    print("  Debug: Converting to attention maps...")
                     # Get the number of patches (excluding CLS token)
                     num_patches = cls_attention1[0].shape[0] - 1  # -1 for CLS token
                     patch_size = int(np.sqrt(num_patches))  # Should be 14 for 224x224 images
+                    print(f"  Debug: num_patches={num_patches}, patch_size={patch_size}")
                     
                     # Reshape attention maps (excluding CLS token attention to itself)
                     attention_map1 = cls_attention1[0][1:].cpu().numpy().reshape(patch_size, patch_size)
                     attention_map2 = cls_attention2[0][1:].cpu().numpy().reshape(patch_size, patch_size)
+                    print(f"  Debug: attention_map1 shape: {attention_map1.shape}")
+                    print(f"  Debug: attention_map2 shape: {attention_map2.shape}")
                     
                     # Plot attention maps
                     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
@@ -517,4 +528,7 @@ def plot_attention_maps(model,
                 
         except Exception as e:
             print(f"⚠ Error generating attention maps: {e}")
+            import traceback
+            print("  Full error traceback:")
+            traceback.print_exc()
             print("  Continuing with similarity visualization only...") 
