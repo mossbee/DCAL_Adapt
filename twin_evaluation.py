@@ -450,7 +450,7 @@ def plot_attention_maps(model,
                        image2: torch.Tensor,
                        save_path: Optional[str] = None):
     """
-    Plot attention maps for twin verification
+    Plot attention maps overlaid on original images for twin verification
     
     Args:
         model: Twin verification model
@@ -461,39 +461,143 @@ def plot_attention_maps(model,
     model.eval()
     
     with torch.no_grad():
-        # Get attention rollout
-        # This requires the model to have attention rollout functionality
-        if hasattr(model, 'get_attention_maps'):
-            attention_maps1 = model.get_attention_maps(image1.unsqueeze(0))
-            attention_maps2 = model.get_attention_maps(image2.unsqueeze(0))
-            
-            # Plot attention maps
-            fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-            
-            # Image 1 attention
-            axes[0, 0].imshow(attention_maps1[0].cpu().numpy(), cmap='hot')
-            axes[0, 0].set_title('Image 1 Attention Map')
-            axes[0, 0].axis('off')
-            
-            # Image 2 attention
-            axes[0, 1].imshow(attention_maps2[0].cpu().numpy(), cmap='hot')
-            axes[0, 1].set_title('Image 2 Attention Map')
-            axes[0, 1].axis('off')
-            
-            # Original images
-            axes[1, 0].imshow(image1.permute(1, 2, 0).cpu().numpy())
-            axes[1, 0].set_title('Image 1')
-            axes[1, 0].axis('off')
-            
-            axes[1, 1].imshow(image2.permute(1, 2, 0).cpu().numpy())
-            axes[1, 1].set_title('Image 2')
-            axes[1, 1].axis('off')
-            
-            plt.tight_layout()
-            
-            if save_path:
-                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        try:
+            print("  Debug: Starting attention map generation...")
+            # Get attention rollout from the base model
+            if hasattr(model, 'siamese_model') and hasattr(model.siamese_model, 'base_model'):
+                print("  Debug: Found siamese_model and base_model")
+                base_model = model.siamese_model.base_model
+                
+                # Reset attention rollout hook
+                if hasattr(base_model, 'rollout_hook'):
+                    print("  Debug: Found rollout_hook")
+                    base_model.rollout_hook.reset()
+                    
+                    # Process first image
+                    print("  Debug: Processing first image...")
+                    # Check if tensor already has batch dimension
+                    if image1.dim() == 3:
+                        image1_batch = image1.unsqueeze(0)
+                    else:
+                        image1_batch = image1
+                    _ = model.extract_features(image1_batch)
+                    cls_attention1 = base_model.rollout_hook.get_cls_attention()
+                    print(f"  Debug: cls_attention1 shape: {cls_attention1.shape}")
+                    
+                    # Reset and process second image
+                    print("  Debug: Processing second image...")
+                    base_model.rollout_hook.reset()
+                    # Check if tensor already has batch dimension
+                    if image2.dim() == 3:
+                        image2_batch = image2.unsqueeze(0)
+                    else:
+                        image2_batch = image2
+                    _ = model.extract_features(image2_batch)
+                    cls_attention2 = base_model.rollout_hook.get_cls_attention()
+                    print(f"  Debug: cls_attention2 shape: {cls_attention2.shape}")
+                    
+                    # Convert to attention maps
+                    print("  Debug: Converting to attention maps...")
+                    # Get the number of patches (excluding CLS token)
+                    num_patches = cls_attention1[0].shape[0] - 1  # -1 for CLS token
+                    
+                    # Calculate the actual grid dimensions
+                    # For 224x224 images with 16x16 patches: 224/16 = 14, so 14x14 = 196 patches
+                    # For 224x224 images with 14x14 patches: 224/14 = 16, so 16x16 = 256 patches
+                    # Let's calculate based on the actual number of patches
+                    grid_size = int(np.sqrt(num_patches))
+                    if grid_size * grid_size != num_patches:
+                        # If not a perfect square, find the closest rectangular shape
+                        # For 195 patches, try different combinations
+                        if num_patches == 195:
+                            grid_h, grid_w = 13, 15  # 13 * 15 = 195
+                        elif num_patches == 196:
+                            grid_h, grid_w = 14, 14  # 14 * 14 = 196
+                        elif num_patches == 256:
+                            grid_h, grid_w = 16, 16  # 16 * 16 = 256
+                        else:
+                            # Fallback: use the closest square
+                            grid_h = grid_w = int(np.sqrt(num_patches))
+                    else:
+                        grid_h = grid_w = grid_size
+                    
+                    print(f"  Debug: num_patches={num_patches}, grid_h={grid_h}, grid_w={grid_w}")
+                    
+                    # Reshape attention maps (excluding CLS token attention to itself)
+                    attention_map1 = cls_attention1[0][1:].cpu().numpy().reshape(grid_h, grid_w)
+                    attention_map2 = cls_attention2[0][1:].cpu().numpy().reshape(grid_h, grid_w)
+                    print(f"  Debug: attention_map1 shape: {attention_map1.shape}")
+                    print(f"  Debug: attention_map2 shape: {attention_map2.shape}")
+                    
+                    # Prepare original images for overlay
+                    # Handle batch dimension if present
+                    if image1.dim() == 4:
+                        img1_for_plot = image1.squeeze(0)  # Remove batch dimension
+                    else:
+                        img1_for_plot = image1
+                    
+                    if image2.dim() == 4:
+                        img2_for_plot = image2.squeeze(0)  # Remove batch dimension
+                    else:
+                        img2_for_plot = image2
+                    
+                    # Denormalize images
+                    img1_denorm = img1_for_plot.permute(1, 2, 0).cpu().numpy()
+                    img1_denorm = (img1_denorm * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])).clip(0, 1)
+                    
+                    img2_denorm = img2_for_plot.permute(1, 2, 0).cpu().numpy()
+                    img2_denorm = (img2_denorm * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406])).clip(0, 1)
+                    
+                    # Resize attention maps to match image dimensions
+                    attention_map1_resized = np.repeat(np.repeat(attention_map1, img1_denorm.shape[0] // grid_h, axis=0), 
+                                                      img1_denorm.shape[1] // grid_w, axis=1)
+                    attention_map2_resized = np.repeat(np.repeat(attention_map2, img2_denorm.shape[0] // grid_h, axis=0), 
+                                                      img2_denorm.shape[1] // grid_w, axis=1)
+                    
+                    # Ensure attention maps match image dimensions exactly
+                    if attention_map1_resized.shape[:2] != img1_denorm.shape[:2]:
+                        from scipy.ndimage import zoom
+                        zoom_factors = (img1_denorm.shape[0] / attention_map1_resized.shape[0], 
+                                       img1_denorm.shape[1] / attention_map1_resized.shape[1])
+                        attention_map1_resized = zoom(attention_map1_resized, zoom_factors, order=1)
+                        attention_map2_resized = zoom(attention_map2_resized, zoom_factors, order=1)
+                    
+                    # Create overlay visualization
+                    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+                    
+                    # Image 1 with attention overlay
+                    axes[0].imshow(img1_denorm)
+                    im1 = axes[0].imshow(attention_map1_resized, cmap='RdYlBu_r', alpha=0.6, interpolation='bilinear')
+                    axes[0].set_title('Image 1 with Attention Overlay\n(Blue=Low Attention, Red=High Attention)')
+                    axes[0].axis('off')
+                    plt.colorbar(im1, ax=axes[0], fraction=0.046, pad=0.04, label='Attention Score')
+                    
+                    # Image 2 with attention overlay
+                    axes[1].imshow(img2_denorm)
+                    im2 = axes[1].imshow(attention_map2_resized, cmap='RdYlBu_r', alpha=0.6, interpolation='bilinear')
+                    axes[1].set_title('Image 2 with Attention Overlay\n(Blue=Low Attention, Red=High Attention)')
+                    axes[1].axis('off')
+                    plt.colorbar(im2, ax=axes[1], fraction=0.046, pad=0.04, label='Attention Score')
+                    
+                    plt.tight_layout()
+                    
+                    if save_path:
+                        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+                        plt.close()
+                    else:
+                        plt.show()
+                        
+                    print("✓ Attention maps with overlays generated successfully")
+                    
+                else:
+                    print("⚠ Attention rollout hook not found in model")
+                    
             else:
-                plt.show()
-        else:
-            print("Model does not have attention map functionality") 
+                print("⚠ Model does not have attention rollout functionality")
+                
+        except Exception as e:
+            print(f"⚠ Error generating attention maps: {e}")
+            import traceback
+            print("  Full error traceback:")
+            traceback.print_exc()
+            print("  Continuing with similarity visualization only...") 
